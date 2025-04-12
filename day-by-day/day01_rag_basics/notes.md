@@ -51,3 +51,39 @@ docs = loader.load()
 
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
 splits = text_splitter.split_documents(docs)
+```
+
+### ✅ Embedding and Indexing
+```python
+embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+vectorstore = Chroma.from_documents(documents=splits, embedding=embeddings)
+retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
+```
+
+### ✅ Defining the Prompt
+```python
+prompt = PromptTemplate(
+    input_variables=["context", "question"],
+    template="""
+Use the following context to answer the question. Be concise and specific.
+
+Context:
+{context}
+
+Question:
+{question}
+"""
+)
+```
+
+### ✅ Running the RAG Chain
+```python
+rag_chain = (
+    {"context": retriever | format_docs, "question": RunnablePassthrough()}
+    | prompt
+    | llm
+    | StrOutputParser()
+)
+
+response = rag_chain.invoke("What is CLALIT?")
+```
